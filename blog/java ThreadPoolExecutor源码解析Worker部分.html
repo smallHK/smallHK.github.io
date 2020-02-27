@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>ThreadPoolExecutor源码解析——Worker</title>
+    <meta name="description" content="">
+    <meta name="generator" content="VuePress 1.3.1">
+    
+    
+    <link rel="preload" href="/assets/css/0.styles.bf8bddd1.css" as="style"><link rel="preload" href="/assets/js/app.7e6950f3.js" as="script"><link rel="preload" href="/assets/js/2.8913a860.js" as="script"><link rel="preload" href="/assets/js/8.d52dcd44.js" as="script"><link rel="prefetch" href="/assets/js/3.04473923.js"><link rel="prefetch" href="/assets/js/4.f03b7f8e.js"><link rel="prefetch" href="/assets/js/5.1bff3f27.js"><link rel="prefetch" href="/assets/js/6.e3a3e8d8.js"><link rel="prefetch" href="/assets/js/7.f16d845a.js"><link rel="prefetch" href="/assets/js/9.6c794a08.js">
+    <link rel="stylesheet" href="/assets/css/0.styles.bf8bddd1.css">
+  </head>
+  <body>
+    <div id="app" data-server-rendered="true"><div class="theme-container no-sidebar"><header class="navbar"><div class="sidebar-button"><svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" role="img" viewBox="0 0 448 512" class="icon"><path fill="currentColor" d="M436 124H12c-6.627 0-12-5.373-12-12V80c0-6.627 5.373-12 12-12h424c6.627 0 12 5.373 12 12v32c0 6.627-5.373 12-12 12zm0 160H12c-6.627 0-12-5.373-12-12v-32c0-6.627 5.373-12 12-12h424c6.627 0 12 5.373 12 12v32c0 6.627-5.373 12-12 12zm0 160H12c-6.627 0-12-5.373-12-12v-32c0-6.627 5.373-12 12-12h424c6.627 0 12 5.373 12 12v32c0 6.627-5.373 12-12 12z"></path></svg></div> <a href="/" class="home-link router-link-active"></a> <div class="links"><div class="search-box"><input aria-label="Search" autocomplete="off" spellcheck="false" value=""> <!----></div> <nav class="nav-links can-hide"><div class="nav-item"><a href="/" class="nav-link">
+  Home
+</a></div><div class="nav-item"><a href="/blog/java ThreadPoolExecutor源码解析.html" class="nav-link">
+  Executor
+</a></div> <a href="https://github.com/smallHK.github.io/blog-demo" target="_blank" rel="noopener noreferrer" class="repo-link">
+    My GitHub
+    <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg></a></nav></div></header> <div class="sidebar-mask"></div> <aside class="sidebar"><nav class="nav-links"><div class="nav-item"><a href="/" class="nav-link">
+  Home
+</a></div><div class="nav-item"><a href="/blog/java ThreadPoolExecutor源码解析.html" class="nav-link">
+  Executor
+</a></div> <a href="https://github.com/smallHK.github.io/blog-demo" target="_blank" rel="noopener noreferrer" class="repo-link">
+    My GitHub
+    <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg></a></nav>  <!----> </aside> <main class="page"> <div class="theme-default-content content__default"><h1 id="threadpoolexecutor源码解析——worker"><a href="#threadpoolexecutor源码解析——worker" class="header-anchor">#</a> ThreadPoolExecutor源码解析——Worker</h1> <p>ThreadPoolExecutor并不是直接使用Thread对象，而是使用内部类将线程包装成Worker工作者使用。</p> <div class="language-java extra-class"><pre class="language-java"><code><span class="token comment">/**
+    * Class Worker mainly maintains interrupt control state for
+    * threads running tasks, along with other minor bookkeeping.
+    * This class opportunistically extends AbstractQueuedSynchronizer
+    * to simplify acquiring and releasing a lock surrounding each
+    * task execution.  This protects against interrupts that are
+    * intended to wake up a worker thread waiting for a task from
+    * instead interrupting a task being run.  We implement a simple
+    * non-reentrant mutual exclusion lock rather than use
+    * ReentrantLock because we do not want worker tasks to be able to
+    * reacquire the lock when they invoke pool control methods like
+    * setCorePoolSize.  Additionally, to suppress interrupts until
+    * the thread actually starts running tasks, we initialize lock
+    * state to a negative value, and clear it upon start (in
+    * runWorker).
+    */</span>
+<span class="token keyword">private</span> <span class="token keyword">final</span> <span class="token keyword">class</span> <span class="token class-name">Worker</span>
+    <span class="token keyword">extends</span> <span class="token class-name">AbstractQueuedSynchronizer</span>
+    <span class="token keyword">implements</span> <span class="token class-name">Runnable</span>
+<span class="token punctuation">{</span>
+    <span class="token comment">/**
+        * This class will never be serialized, but we provide a
+        * serialVersionUID to suppress a javac warning.
+        */</span>
+    <span class="token keyword">private</span> <span class="token keyword">static</span> <span class="token keyword">final</span> <span class="token keyword">long</span> serialVersionUID <span class="token operator">=</span> <span class="token number">6138294804551838833L</span><span class="token punctuation">;</span>
+
+    <span class="token comment">/** Thread this worker is running in.  Null if factory fails. */</span>
+    <span class="token keyword">final</span> <span class="token class-name">Thread</span> thread<span class="token punctuation">;</span>
+    <span class="token comment">/** Initial task to run.  Possibly null. */</span>
+    <span class="token class-name">Runnable</span> firstTask<span class="token punctuation">;</span>
+    <span class="token comment">/** Per-thread task counter */</span>
+    <span class="token keyword">volatile</span> <span class="token keyword">long</span> completedTasks<span class="token punctuation">;</span>
+
+    <span class="token comment">// TODO: switch to AbstractQueuedLongSynchronizer and move</span>
+    <span class="token comment">// completedTasks into the lock word.</span>
+
+    <span class="token comment">/**
+        * Creates with given first task and thread from ThreadFactory.
+        * @param firstTask the first task (null if none)
+        */</span>
+    <span class="token class-name">Worker</span><span class="token punctuation">(</span><span class="token class-name">Runnable</span> firstTask<span class="token punctuation">)</span> <span class="token punctuation">{</span>
+        <span class="token function">setState</span><span class="token punctuation">(</span><span class="token operator">-</span><span class="token number">1</span><span class="token punctuation">)</span><span class="token punctuation">;</span> <span class="token comment">// inhibit interrupts until runWorker</span>
+        <span class="token keyword">this</span><span class="token punctuation">.</span>firstTask <span class="token operator">=</span> firstTask<span class="token punctuation">;</span>
+        <span class="token keyword">this</span><span class="token punctuation">.</span>thread <span class="token operator">=</span> <span class="token function">getThreadFactory</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">.</span><span class="token function">newThread</span><span class="token punctuation">(</span><span class="token keyword">this</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span>
+
+    <span class="token comment">/** Delegates main run loop to outer runWorker. */</span>
+    <span class="token keyword">public</span> <span class="token keyword">void</span> <span class="token function">run</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
+        <span class="token function">runWorker</span><span class="token punctuation">(</span><span class="token keyword">this</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span>
+
+    <span class="token comment">// Lock methods</span>
+    <span class="token comment">//</span>
+    <span class="token comment">// The value 0 represents the unlocked state.</span>
+    <span class="token comment">// The value 1 represents the locked state.</span>
+
+    <span class="token keyword">protected</span> <span class="token keyword">boolean</span> <span class="token function">isHeldExclusively</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
+        <span class="token keyword">return</span> <span class="token function">getState</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">!=</span> <span class="token number">0</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span>
+
+    <span class="token keyword">protected</span> <span class="token keyword">boolean</span> <span class="token function">tryAcquire</span><span class="token punctuation">(</span><span class="token keyword">int</span> unused<span class="token punctuation">)</span> <span class="token punctuation">{</span>
+        <span class="token keyword">if</span> <span class="token punctuation">(</span><span class="token function">compareAndSetState</span><span class="token punctuation">(</span><span class="token number">0</span><span class="token punctuation">,</span> <span class="token number">1</span><span class="token punctuation">)</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
+            <span class="token function">setExclusiveOwnerThread</span><span class="token punctuation">(</span><span class="token class-name">Thread</span><span class="token punctuation">.</span><span class="token function">currentThread</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+            <span class="token keyword">return</span> <span class="token boolean">true</span><span class="token punctuation">;</span>
+        <span class="token punctuation">}</span>
+        <span class="token keyword">return</span> <span class="token boolean">false</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span>
+
+    <span class="token keyword">protected</span> <span class="token keyword">boolean</span> <span class="token function">tryRelease</span><span class="token punctuation">(</span><span class="token keyword">int</span> unused<span class="token punctuation">)</span> <span class="token punctuation">{</span>
+        <span class="token function">setExclusiveOwnerThread</span><span class="token punctuation">(</span><span class="token keyword">null</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token function">setState</span><span class="token punctuation">(</span><span class="token number">0</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token keyword">return</span> <span class="token boolean">true</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span>
+
+    <span class="token keyword">public</span> <span class="token keyword">void</span> <span class="token function">lock</span><span class="token punctuation">(</span><span class="token punctuation">)</span>        <span class="token punctuation">{</span> <span class="token function">acquire</span><span class="token punctuation">(</span><span class="token number">1</span><span class="token punctuation">)</span><span class="token punctuation">;</span> <span class="token punctuation">}</span>
+    <span class="token keyword">public</span> <span class="token keyword">boolean</span> <span class="token function">tryLock</span><span class="token punctuation">(</span><span class="token punctuation">)</span>  <span class="token punctuation">{</span> <span class="token keyword">return</span> <span class="token function">tryAcquire</span><span class="token punctuation">(</span><span class="token number">1</span><span class="token punctuation">)</span><span class="token punctuation">;</span> <span class="token punctuation">}</span>
+    <span class="token keyword">public</span> <span class="token keyword">void</span> <span class="token function">unlock</span><span class="token punctuation">(</span><span class="token punctuation">)</span>      <span class="token punctuation">{</span> <span class="token function">release</span><span class="token punctuation">(</span><span class="token number">1</span><span class="token punctuation">)</span><span class="token punctuation">;</span> <span class="token punctuation">}</span>
+    <span class="token keyword">public</span> <span class="token keyword">boolean</span> <span class="token function">isLocked</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span> <span class="token keyword">return</span> <span class="token function">isHeldExclusively</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span> <span class="token punctuation">}</span>
+
+    <span class="token keyword">void</span> <span class="token function">interruptIfStarted</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
+        <span class="token class-name">Thread</span> t<span class="token punctuation">;</span>
+        <span class="token keyword">if</span> <span class="token punctuation">(</span><span class="token function">getState</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">&gt;=</span> <span class="token number">0</span> <span class="token operator">&amp;&amp;</span> <span class="token punctuation">(</span>t <span class="token operator">=</span> thread<span class="token punctuation">)</span> <span class="token operator">!=</span> <span class="token keyword">null</span> <span class="token operator">&amp;&amp;</span> <span class="token operator">!</span>t<span class="token punctuation">.</span><span class="token function">isInterrupted</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
+            <span class="token keyword">try</span> <span class="token punctuation">{</span>
+                t<span class="token punctuation">.</span><span class="token function">interrupt</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+            <span class="token punctuation">}</span> <span class="token keyword">catch</span> <span class="token punctuation">(</span><span class="token class-name">SecurityException</span> ignore<span class="token punctuation">)</span> <span class="token punctuation">{</span>
+            <span class="token punctuation">}</span>
+        <span class="token punctuation">}</span>
+    <span class="token punctuation">}</span>
+<span class="token punctuation">}</span>
+</code></pre></div><p>worker扩展了AbstractQueuedSynchronizer，简化了对锁的释放控制。worker内部维护一个线程以及一个任务Runnable。它本身的执行委托给外部执行器的runWorker方法。并且它自身提供了一个中断方法。</p></div> <footer class="page-edit"><!----> <!----></footer> <!----> </main></div><div class="global-ui"></div></div>
+    <script src="/assets/js/app.7e6950f3.js" defer></script><script src="/assets/js/2.8913a860.js" defer></script><script src="/assets/js/8.d52dcd44.js" defer></script>
+  </body>
+</html>
