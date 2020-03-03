@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>HashTable源码解析——put操作</title>
+    <meta name="description" content="">
+    <meta name="generator" content="VuePress 1.3.1">
+    
+    
+    <link rel="preload" href="/assets/css/0.styles.bf8bddd1.css" as="style"><link rel="preload" href="/assets/js/app.4a0c06ac.js" as="script"><link rel="preload" href="/assets/js/2.8913a860.js" as="script"><link rel="preload" href="/assets/js/7.992e21f4.js" as="script"><link rel="prefetch" href="/assets/js/10.3e6235f4.js"><link rel="prefetch" href="/assets/js/11.d315afc9.js"><link rel="prefetch" href="/assets/js/12.c79f47ff.js"><link rel="prefetch" href="/assets/js/13.9b4fe62b.js"><link rel="prefetch" href="/assets/js/14.51adb25d.js"><link rel="prefetch" href="/assets/js/3.b5508deb.js"><link rel="prefetch" href="/assets/js/4.f03b7f8e.js"><link rel="prefetch" href="/assets/js/5.1bff3f27.js"><link rel="prefetch" href="/assets/js/6.e3a3e8d8.js"><link rel="prefetch" href="/assets/js/8.e29eca4f.js"><link rel="prefetch" href="/assets/js/9.daba56ec.js">
+    <link rel="stylesheet" href="/assets/css/0.styles.bf8bddd1.css">
+  </head>
+  <body>
+    <div id="app" data-server-rendered="true"><div class="theme-container no-sidebar"><header class="navbar"><div class="sidebar-button"><svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" role="img" viewBox="0 0 448 512" class="icon"><path fill="currentColor" d="M436 124H12c-6.627 0-12-5.373-12-12V80c0-6.627 5.373-12 12-12h424c6.627 0 12 5.373 12 12v32c0 6.627-5.373 12-12 12zm0 160H12c-6.627 0-12-5.373-12-12v-32c0-6.627 5.373-12 12-12h424c6.627 0 12 5.373 12 12v32c0 6.627-5.373 12-12 12zm0 160H12c-6.627 0-12-5.373-12-12v-32c0-6.627 5.373-12 12-12h424c6.627 0 12 5.373 12 12v32c0 6.627-5.373 12-12 12z"></path></svg></div> <a href="/" class="home-link router-link-active"></a> <div class="links"><div class="search-box"><input aria-label="Search" autocomplete="off" spellcheck="false" value=""> <!----></div> <nav class="nav-links can-hide"><div class="nav-item"><a href="/" class="nav-link">
+  Home
+</a></div><div class="nav-item"><a href="/blog/java ThreadPoolExecutor源码解析.html" class="nav-link">
+  Executor
+</a></div> <a href="https://github.com/smallHK.github.io/blog-demo" target="_blank" rel="noopener noreferrer" class="repo-link">
+    My GitHub
+    <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg></a></nav></div></header> <div class="sidebar-mask"></div> <aside class="sidebar"><nav class="nav-links"><div class="nav-item"><a href="/" class="nav-link">
+  Home
+</a></div><div class="nav-item"><a href="/blog/java ThreadPoolExecutor源码解析.html" class="nav-link">
+  Executor
+</a></div> <a href="https://github.com/smallHK.github.io/blog-demo" target="_blank" rel="noopener noreferrer" class="repo-link">
+    My GitHub
+    <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg></a></nav>  <!----> </aside> <main class="page"> <div class="theme-default-content content__default"><h1 id="hashtable源码解析——put操作"><a href="#hashtable源码解析——put操作" class="header-anchor">#</a> HashTable源码解析——put操作</h1> <p>HashTable通过put操作存储键值映射。put操作本身加synchronized。</p> <p>首先判断是否为null，如果为null，抛出null异常。</p> <div class="language-java extra-class"><pre class="language-java"><code><span class="token keyword">if</span> <span class="token punctuation">(</span>value <span class="token operator">==</span> <span class="token keyword">null</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
+    <span class="token keyword">throw</span> <span class="token keyword">new</span> <span class="token class-name">NullPointerException</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span>
+</code></pre></div><p>获取key的哈希值，然后通过hash计算索引</p> <div class="language-java extra-class"><pre class="language-java"><code><span class="token keyword">int</span> hash <span class="token operator">=</span> key<span class="token punctuation">.</span><span class="token function">hashCode</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token keyword">int</span> index <span class="token operator">=</span> <span class="token punctuation">(</span>hash <span class="token operator">&amp;</span> <span class="token number">0x7FFFFFFF</span><span class="token punctuation">)</span> <span class="token operator">%</span> tab<span class="token punctuation">.</span>length<span class="token punctuation">;</span>
+</code></pre></div><p>获取从内部维护的table获取索引处的节点。由于Entry为列表，逐个遍历链表的结点，直到获取为null的结点。迭代中，如果该点的hash与实体的hash相同，并且两者间相同，则将旧的值返回，新的值赋予原Entry。</p> <div class="language-java extra-class"><pre class="language-java"><code><span class="token class-name">Entry</span><span class="token generics"><span class="token punctuation">&lt;</span><span class="token class-name">K</span><span class="token punctuation">,</span><span class="token class-name">V</span><span class="token punctuation">&gt;</span></span> entry <span class="token operator">=</span> <span class="token punctuation">(</span><span class="token class-name">Entry</span><span class="token generics"><span class="token punctuation">&lt;</span><span class="token class-name">K</span><span class="token punctuation">,</span><span class="token class-name">V</span><span class="token punctuation">&gt;</span></span><span class="token punctuation">)</span>tab<span class="token punctuation">[</span>index<span class="token punctuation">]</span><span class="token punctuation">;</span>
+<span class="token keyword">for</span><span class="token punctuation">(</span><span class="token punctuation">;</span> entry <span class="token operator">!=</span> <span class="token keyword">null</span> <span class="token punctuation">;</span> entry <span class="token operator">=</span> entry<span class="token punctuation">.</span>next<span class="token punctuation">)</span> <span class="token punctuation">{</span>
+    <span class="token keyword">if</span> <span class="token punctuation">(</span><span class="token punctuation">(</span>entry<span class="token punctuation">.</span>hash <span class="token operator">==</span> hash<span class="token punctuation">)</span> <span class="token operator">&amp;&amp;</span> entry<span class="token punctuation">.</span>key<span class="token punctuation">.</span><span class="token function">equals</span><span class="token punctuation">(</span>key<span class="token punctuation">)</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
+        <span class="token class-name">V</span> old <span class="token operator">=</span> entry<span class="token punctuation">.</span>value<span class="token punctuation">;</span>
+        entry<span class="token punctuation">.</span>value <span class="token operator">=</span> value<span class="token punctuation">;</span>
+        <span class="token keyword">return</span> old<span class="token punctuation">;</span>
+    <span class="token punctuation">}</span>
+<span class="token punctuation">}</span>
+</code></pre></div><p>如果完成遍历，也没有发现旧结点，则添加新结点，然后返回null。</p> <div class="language-java extra-class"><pre class="language-java"><code><span class="token function">addEntry</span><span class="token punctuation">(</span>hash<span class="token punctuation">,</span> key<span class="token punctuation">,</span> value<span class="token punctuation">,</span> index<span class="token punctuation">)</span><span class="token punctuation">;</span>
+</code></pre></div><h2 id="hashtable添加entry"><a href="#hashtable添加entry" class="header-anchor">#</a> HashTable添加Entry</h2> <p>添加结点时，首先获取表。</p> <p>如果表内结点的总数超过了阈值，则引发刷新操作。刷新之后，获取刷新后的表、哈希值，并且计算新的索引。</p> <div class="language-java extra-class"><pre class="language-java"><code><span class="token keyword">if</span> <span class="token punctuation">(</span>count <span class="token operator">&gt;=</span> threshold<span class="token punctuation">)</span> <span class="token punctuation">{</span>
+    <span class="token comment">// Rehash the table if the threshold is exceeded</span>
+    <span class="token function">rehash</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+    tab <span class="token operator">=</span> table<span class="token punctuation">;</span>
+    hash <span class="token operator">=</span> key<span class="token punctuation">.</span><span class="token function">hashCode</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    index <span class="token operator">=</span> <span class="token punctuation">(</span>hash <span class="token operator">&amp;</span> <span class="token number">0x7FFFFFFF</span><span class="token punctuation">)</span> <span class="token operator">%</span> tab<span class="token punctuation">.</span>length<span class="token punctuation">;</span>
+<span class="token punctuation">}</span>
+</code></pre></div><p>获取索引处的Entry，然后创建新的Entry，作为首结点。</p> <p>总数+1，modCount+1。</p> <div class="language-java extra-class"><pre class="language-java"><code>count<span class="token operator">++</span><span class="token punctuation">;</span>
+modCount<span class="token operator">++</span><span class="token punctuation">;</span>
+</code></pre></div></div> <footer class="page-edit"><!----> <!----></footer> <!----> </main></div><div class="global-ui"></div></div>
+    <script src="/assets/js/app.4a0c06ac.js" defer></script><script src="/assets/js/2.8913a860.js" defer></script><script src="/assets/js/7.992e21f4.js" defer></script>
+  </body>
+</html>
