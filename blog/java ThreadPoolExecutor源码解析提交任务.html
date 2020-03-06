@@ -8,7 +8,7 @@
     <meta name="generator" content="VuePress 1.3.1">
     
     
-    <link rel="preload" href="/assets/css/0.styles.bf8bddd1.css" as="style"><link rel="preload" href="/assets/js/app.94b019ca.js" as="script"><link rel="preload" href="/assets/js/2.8913a860.js" as="script"><link rel="preload" href="/assets/js/14.68a14b39.js" as="script"><link rel="prefetch" href="/assets/js/10.1fb279ac.js"><link rel="prefetch" href="/assets/js/11.5d42f1ab.js"><link rel="prefetch" href="/assets/js/12.5803d4e2.js"><link rel="prefetch" href="/assets/js/13.46b7c15e.js"><link rel="prefetch" href="/assets/js/15.7d9385c3.js"><link rel="prefetch" href="/assets/js/16.95456ca2.js"><link rel="prefetch" href="/assets/js/3.589dce2f.js"><link rel="prefetch" href="/assets/js/4.f03b7f8e.js"><link rel="prefetch" href="/assets/js/5.5defc76c.js"><link rel="prefetch" href="/assets/js/6.8382699c.js"><link rel="prefetch" href="/assets/js/7.721836af.js"><link rel="prefetch" href="/assets/js/8.9f587056.js"><link rel="prefetch" href="/assets/js/9.65082a02.js">
+    <link rel="preload" href="/assets/css/0.styles.bf8bddd1.css" as="style"><link rel="preload" href="/assets/js/app.f252c68a.js" as="script"><link rel="preload" href="/assets/js/2.8913a860.js" as="script"><link rel="preload" href="/assets/js/15.e5f31942.js" as="script"><link rel="prefetch" href="/assets/js/10.3ba1b6d8.js"><link rel="prefetch" href="/assets/js/11.ffb0edb3.js"><link rel="prefetch" href="/assets/js/12.0bebe087.js"><link rel="prefetch" href="/assets/js/13.ec730b25.js"><link rel="prefetch" href="/assets/js/14.74be775a.js"><link rel="prefetch" href="/assets/js/16.f7dafedc.js"><link rel="prefetch" href="/assets/js/17.fa6e8c03.js"><link rel="prefetch" href="/assets/js/3.865f603a.js"><link rel="prefetch" href="/assets/js/4.f03b7f8e.js"><link rel="prefetch" href="/assets/js/5.5defc76c.js"><link rel="prefetch" href="/assets/js/6.8382699c.js"><link rel="prefetch" href="/assets/js/7.20e536ff.js"><link rel="prefetch" href="/assets/js/8.35fedbdd.js"><link rel="prefetch" href="/assets/js/9.f1ec6fef.js">
     <link rel="stylesheet" href="/assets/css/0.styles.bf8bddd1.css">
   </head>
   <body>
@@ -75,6 +75,6 @@
         <span class="token function">reject</span><span class="token punctuation">(</span>command<span class="token punctuation">)</span><span class="token punctuation">;</span>
 <span class="token punctuation">}</span>
 </code></pre></div><p>该方法首先会验证输入的命令是否为null，如果为null，抛出运行时异常，即null异常。然后获取该线程池的状态c。</p> <p>首先从c中提取当前工作者数据，工作者即线程的封装，当工作者worker的数量小于设置的核心线程数时，添加工作者（核心工作者），如果添加成功直接返回。如果失败，获取当前状态，继续执行。（如果线程池已经关闭，该添加就会失败。）</p> <p>通过c提取线程池运行状态，如果处于工作状态，并且成功提交任务，再次获取线程池状态。此时开始判断，是否需要增加线程，有可能方法执行期间，存在线程死亡现象。此时判断线程池是否处于运行状态，如果并非处于运行状态，将任务移除，如果移除成功，执行拒绝（二次检查，如果提交方法执行期间池关闭，即回卷）。如果线程池没关闭，工作者数量为0，添加非核心工作者。</p> <p>最后，如果上一步判定池并非运行状态或者任务添加失败，则再次添加工作者，不过此次添加的并不是核心工作者，如果添加失败，直接执行拒绝操作，如果成功退出方法。</p></div> <footer class="page-edit"><!----> <!----></footer> <!----> </main></div><div class="global-ui"></div></div>
-    <script src="/assets/js/app.94b019ca.js" defer></script><script src="/assets/js/2.8913a860.js" defer></script><script src="/assets/js/14.68a14b39.js" defer></script>
+    <script src="/assets/js/app.f252c68a.js" defer></script><script src="/assets/js/2.8913a860.js" defer></script><script src="/assets/js/15.e5f31942.js" defer></script>
   </body>
 </html>
