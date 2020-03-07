@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Spring IoC容器 源码解析——AbstractApplicationContext刷新</title>
+    <meta name="description" content="">
+    <meta name="generator" content="VuePress 1.3.1">
+    
+    
+    <link rel="preload" href="/assets/css/0.styles.bf8bddd1.css" as="style"><link rel="preload" href="/assets/js/app.ccad7205.js" as="script"><link rel="preload" href="/assets/js/2.8913a860.js" as="script"><link rel="preload" href="/assets/js/8.1ae83486.js" as="script"><link rel="prefetch" href="/assets/js/10.90602089.js"><link rel="prefetch" href="/assets/js/11.1351fe9a.js"><link rel="prefetch" href="/assets/js/12.1bb709a8.js"><link rel="prefetch" href="/assets/js/13.ec8ab779.js"><link rel="prefetch" href="/assets/js/14.e67828a4.js"><link rel="prefetch" href="/assets/js/15.d9ad2f25.js"><link rel="prefetch" href="/assets/js/16.8889377c.js"><link rel="prefetch" href="/assets/js/17.bcc3d823.js"><link rel="prefetch" href="/assets/js/18.a48c1f76.js"><link rel="prefetch" href="/assets/js/3.05df3a41.js"><link rel="prefetch" href="/assets/js/4.f03b7f8e.js"><link rel="prefetch" href="/assets/js/5.5defc76c.js"><link rel="prefetch" href="/assets/js/6.8382699c.js"><link rel="prefetch" href="/assets/js/7.3e0247ea.js"><link rel="prefetch" href="/assets/js/9.aa695d3c.js">
+    <link rel="stylesheet" href="/assets/css/0.styles.bf8bddd1.css">
+  </head>
+  <body>
+    <div id="app" data-server-rendered="true"><div class="theme-container no-sidebar"><header class="navbar"><div class="sidebar-button"><svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" role="img" viewBox="0 0 448 512" class="icon"><path fill="currentColor" d="M436 124H12c-6.627 0-12-5.373-12-12V80c0-6.627 5.373-12 12-12h424c6.627 0 12 5.373 12 12v32c0 6.627-5.373 12-12 12zm0 160H12c-6.627 0-12-5.373-12-12v-32c0-6.627 5.373-12 12-12h424c6.627 0 12 5.373 12 12v32c0 6.627-5.373 12-12 12zm0 160H12c-6.627 0-12-5.373-12-12v-32c0-6.627 5.373-12 12-12h424c6.627 0 12 5.373 12 12v32c0 6.627-5.373 12-12 12z"></path></svg></div> <a href="/" class="home-link router-link-active"></a> <div class="links"><div class="search-box"><input aria-label="Search" autocomplete="off" spellcheck="false" value=""> <!----></div> <nav class="nav-links can-hide"><div class="nav-item"><a href="/" class="nav-link">
+  Home
+</a></div><div class="nav-item"><a href="/blog/java ThreadPoolExecutor源码解析.html" class="nav-link">
+  Executor
+</a></div> <a href="https://github.com/smallHK.github.io/blog-demo" target="_blank" rel="noopener noreferrer" class="repo-link">
+    My GitHub
+    <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg></a></nav></div></header> <div class="sidebar-mask"></div> <aside class="sidebar"><nav class="nav-links"><div class="nav-item"><a href="/" class="nav-link">
+  Home
+</a></div><div class="nav-item"><a href="/blog/java ThreadPoolExecutor源码解析.html" class="nav-link">
+  Executor
+</a></div> <a href="https://github.com/smallHK.github.io/blog-demo" target="_blank" rel="noopener noreferrer" class="repo-link">
+    My GitHub
+    <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg></a></nav>  <!----> </aside> <main class="page"> <div class="theme-default-content content__default"><h1 id="spring-ioc容器-源码解析——abstractapplicationcontext刷新"><a href="#spring-ioc容器-源码解析——abstractapplicationcontext刷新" class="header-anchor">#</a> Spring IoC容器 源码解析——AbstractApplicationContext刷新</h1> <p>容器初始化时，会执行刷新操作。refresh为ConfigurableApplicationContext中生命的方法。</p> <p>刷新操作首先会执行预刷新，准备刷新的上下文。</p> <div class="language-java extra-class"><pre class="language-java"><code><span class="token function">prepareRefresh</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+</code></pre></div><p>可配置的获取bean工厂。</p> <div class="language-java extra-class"><pre class="language-java"><code><span class="token class-name">ConfigurableListableBeanFactory</span> beanFactory <span class="token operator">=</span> <span class="token function">obtainFreshBeanFactory</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+</code></pre></div><p>准备bean工厂。</p> <div class="language-java extra-class"><pre class="language-java"><code><span class="token function">prepareBeanFactory</span><span class="token punctuation">(</span>beanFactory<span class="token punctuation">)</span><span class="token punctuation">;</span>
+</code></pre></div><p>后处理bean工厂。</p> <div class="language-java extra-class"><pre class="language-java"><code><span class="token function">postProcessBeanFactory</span><span class="token punctuation">(</span>beanFactory<span class="token punctuation">)</span><span class="token punctuation">;</span>
+</code></pre></div><p>调用bean工厂后处理器</p> <div class="language-java extra-class"><pre class="language-java"><code><span class="token function">invokeBeanFactoryPostProcessors</span><span class="token punctuation">(</span>beanFactory<span class="token punctuation">)</span><span class="token punctuation">;</span>
+</code></pre></div><p>注册bean post处理器</p> <div class="language-java extra-class"><pre class="language-java"><code><span class="token function">registerBeanPostProcessors</span><span class="token punctuation">(</span>beanFactory<span class="token punctuation">)</span><span class="token punctuation">;</span>
+</code></pre></div><p>初始化消息源</p> <div class="language-java extra-class"><pre class="language-java"><code><span class="token function">initMessageSource</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+</code></pre></div><p>初始化应用事件广播</p> <div class="language-java extra-class"><pre class="language-java"><code><span class="token function">initApplicationEventMulticaster</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+</code></pre></div><p>初始化特定beans</p> <div class="language-java extra-class"><pre class="language-java"><code><span class="token function">onRefresh</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+</code></pre></div><p>验证监听器，并注册</p> <div class="language-java extra-class"><pre class="language-java"><code><span class="token function">registerListeners</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+</code></pre></div><p>结束bean工厂初始化</p> <div class="language-java extra-class"><pre class="language-java"><code><span class="token function">finishBeanFactoryInitialization</span><span class="token punctuation">(</span>beanFactory<span class="token punctuation">)</span><span class="token punctuation">;</span>
+</code></pre></div><p>结束刷新</p> <div class="language-java extra-class"><pre class="language-java"><code><span class="token function">finishRefresh</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+</code></pre></div><p>如果期间发生了beans异常，销毁bean，并且取消刷新。</p> <div class="language-java extra-class"><pre class="language-java"><code><span class="token comment">// Destroy already created singletons to avoid dangling resources.</span>
+<span class="token function">destroyBeans</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+<span class="token comment">// Reset 'active' flag.</span>
+<span class="token function">cancelRefresh</span><span class="token punctuation">(</span>ex<span class="token punctuation">)</span><span class="token punctuation">;</span>
+</code></pre></div><p>最终重置缓存</p> <div class="language-java extra-class"><pre class="language-java"><code><span class="token function">resetCommonCaches</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+</code></pre></div></div> <footer class="page-edit"><!----> <!----></footer> <!----> </main></div><div class="global-ui"></div></div>
+    <script src="/assets/js/app.ccad7205.js" defer></script><script src="/assets/js/2.8913a860.js" defer></script><script src="/assets/js/8.1ae83486.js" defer></script>
+  </body>
+</html>
